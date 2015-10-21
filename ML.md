@@ -11,7 +11,6 @@ October 19, 2015
 
 We will be examining some exercise data to look for patterns. Our goal is to predict the type of workout, indicated by the "classe" variable, using the other metrics. The data is provided by [Groupware](http://groupware.les.inf.puc-rio.br/har), from the paper cited at the end of this document. We are suppressing messages and warnings, all pertain to release dates.
 
-To see an interactive version of this document (don't get too excited, it's not an amusement park or anything), visit [my shiny page](https://aarongowins.shinyapps.io/Write-Up).
 
 
 ```r

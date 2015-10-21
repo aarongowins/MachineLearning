@@ -73,7 +73,6 @@ img {
 <div id="exploration" class="section level3">
 <h3>Exploration</h3>
 <p>We will be examining some exercise data to look for patterns. Our goal is to predict the type of workout, indicated by the “classe” variable, using the other metrics. The data is provided by <a href="http://groupware.les.inf.puc-rio.br/har">Groupware</a>, from the paper cited at the end of this document. We are suppressing messages and warnings, all pertain to release dates.</p>
-<p>To see an interactive version of this document (don’t get too excited, it’s not an amusement park or anything), visit <a href="https://aarongowins.shinyapps.io/Write-Up">my shiny page</a>.</p>
 <pre class="r"><code>URL&lt;-&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
 download.file(URL,destfile=&quot;TRAIN&quot;,method=&quot;curl&quot;)
 trainer&lt;-read.csv(file=&quot;TRAIN&quot;,header=TRUE,sep=&quot;,&quot;)
