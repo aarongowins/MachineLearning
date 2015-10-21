@@ -215,6 +215,17 @@ If we were to use every variable in our LDA, we would be able to predict our arb
 
 ```r
 library(caret)
+```
+
+```
+## Warning: package 'caret' was built under R version 3.1.3
+```
+
+```
+## Loading required package: lattice
+```
+
+```r
 modelFit<-train(training$classe ~ .,method="lda",data=trainingPC,trControl=trainControl(method="cv",number=5,repeats=3))
 train.lda<-predict(modelFit,trainingPC)
 confusionMatrix(training$classe,predict(modelFit,trainingPC))
@@ -329,7 +340,7 @@ testerPre
 ## Levels: A B C D E
 ```
 
-So there we have it. I optimized the number of principal components according to the least number of "A"'s. There are 14 correct out of 20, which is not as high as the prediction, but that's what we expected from the videos, right?
+So there we have it. I optimized the number of principal components according to the least number of "A"'s. There are 14 correct out of 20, which is higher than the predicted accuracy, why is that?
 
 
 

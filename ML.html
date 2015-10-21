@@ -179,8 +179,10 @@ scatterplot3d(x=training$classe,y=trainingPC[,1],z=trainingPC[,2], main=&quot;3D
 <div id="returning-to-the-model" class="section level4">
 <h4>Returning to the Model</h4>
 <p>If we were to use every variable in our LDA, we would be able to predict our arbitrarily created training and test sets perfectly. However, that’s boring, so let’s pretend like for some reason we can’t do that or don’t want to. Here I am employing k-fold cross validation with 3 iterations, although for subtle reasons in our case this won’t make any difference for our accuracy. It’s here just for future reference (for show).</p>
-<pre class="r"><code>library(caret)
-modelFit&lt;-train(training$classe ~ .,method=&quot;lda&quot;,data=trainingPC,trControl=trainControl(method=&quot;cv&quot;,number=5,repeats=3))
+<pre class="r"><code>library(caret)</code></pre>
+<pre><code>## Warning: package 'caret' was built under R version 3.1.3</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre class="r"><code>modelFit&lt;-train(training$classe ~ .,method=&quot;lda&quot;,data=trainingPC,trControl=trainControl(method=&quot;cv&quot;,number=5,repeats=3))
 train.lda&lt;-predict(modelFit,trainingPC)
 confusionMatrix(training$classe,predict(modelFit,trainingPC))</code></pre>
 <pre><code>## Confusion Matrix and Statistics
@@ -270,7 +272,7 @@ plot(testing$classe,testy)</code></pre>
 <pre class="r"><code>testerPre</code></pre>
 <pre><code>##  [1] C A A A A C D D A A A A B A E A A B B B
 ## Levels: A B C D E</code></pre>
-<p>So there we have it. I optimized the number of principal components according to the least number of “A”’s. There are 14 correct out of 20, which is not as high as the prediction, but that’s what we expected from the videos, right?</p>
+<p>So there we have it. I optimized the number of principal components according to the least number of “A”’s. There are 14 correct out of 20, which is higher than the predicted accuracy, why is that?</p>
 <p>Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human ’13) . Stuttgart, Germany: ACM SIGCHI, 2013.</p>
 <p>Read more: <a href="http://groupware.les.inf.puc-rio.br/har#ixzz3p8XTtotD" class="uri">http://groupware.les.inf.puc-rio.br/har#ixzz3p8XTtotD</a></p>
 <p>.</p>

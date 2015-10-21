@@ -183,7 +183,7 @@ plot(testing$classe,testy)
 testerPre
 ``` 
 
-So there we have it. I optimized the number of principal components according to the least number of "A"'s. There are 14 correct out of 20, which is not as high as the prediction, but that's what we expected from the videos, right?
+So there we have it. I optimized the number of principal components according to the least number of "A"'s. There are 14 correct out of 20, which is higher than the predicted accuracy, why is that?
 
 
 
