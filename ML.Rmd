@@ -1,0 +1,198 @@
+---
+title: "ML"
+author: "aaron gowins"
+date: "October 19, 2015"
+pandoc_args: [
+"+RTS","-K64m","-RTS"
+]
+output:
+  html_document:
+    keep_md: true
+---
+
+
+
+
+# Writeup
+
+### Exploration
+
+We will be examining some exercise data to look for patterns. Our goal is to predict the type of workout, indicated by the "classe" variable, using the other metrics. The data is provided by [Groupware](http://groupware.les.inf.puc-rio.br/har), from the paper cited at the end of this document. We are suppressing messages and warnings, all pertain to release dates.
+
+To see an interactive version of this document (don't get too excited, it's not an amusement park or anything), visit [my shiny page](https://aarongowins.shinyapps.io/Write-Up).
+
+```{r,cache=TRUE, messages=FALSE, warnings=FALSE}
+URL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(URL,destfile="TRAIN",method="curl")
+trainer<-read.csv(file="TRAIN",header=TRUE,sep=",")
+URL2<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(URL2,destfile="TEST",method="curl")
+tester<-read.csv(file="TEST",header=TRUE,sep=",")
+dimRow<-dim(trainer)[1]
+dimCol<-dim(trainer)[2]
+```
+
+We have a dataset with `r dimRow` rows, and `r dimCol` columns.
+
+```{r, messages=FALSE, warnings=FALSE}
+#library(googleVis)
+library(ggplot2)
+library(MASS)
+
+
+```
+
+All the users are plotted together below and colored by user to see a comparison of the overall counts of the classe variable among users.
+
+
+
+```{r, cache=TRUE}
+
+ggplot(data=trainer,aes(x=classe,fill=user_name)) + geom_bar()
+trainer$classe<-as.numeric(trainer$classe)
+trainer$classe<-as.factor(trainer$classe)
+
+```
+
+Next we will divide the training set into training and testing components, and produce a plot that primarily underscores the complexity of the dataset. 
+
+
+
+```{r, cache=TRUE}
+
+library(caret)
+inTrain<-createDataPartition(y=trainer$classe,p=.75,list=FALSE)
+training<-trainer[inTrain,]
+testing<-trainer[-inTrain,]
+library(car)
+library(AppliedPredictiveModeling)
+#featurePlot(x=trainer[,30:34],y=trainer$classe,plot="pairs",auto.key = list(columns = 3))
+scatterplotMatrix(trainer[30:34])
+```
+
+### Cleaning
+
+We will set NA's to zero, which for continuous variables is unacceptible practice. If this was a real analysis, we should be imputing these NA's using the "mice" package, but that is a whole topic of it's own.
+
+Note that we are applying any data transformation to both the training set and the testing set we arbitrarily created. If we fail to do this we will most likely get an error message, but if an error is not thrown then we will botch our analysis in epically embarrassing fashion.
+
+
+```{r, cache=TRUE}
+set.seed(111)
+
+trainer[is.na(trainer)]<-0
+training[is.na(training)]<-0
+testing[is.na(testing)]<-0
+tester[is.na(tester)]<-0
+```
+
+Near zero variance varibles can add tremendous computational time, not to mention other problems, while providing essentially no information. This is not always true, and it's poor form to remove them without showing that it makes sense to do so. We will skip over the explanation and assume that good model performance is evidence enough that removing NZV's is okay here (which I believe is broadly true).
+
+```{r, cache=TRUE}
+x<-nearZeroVar(training)
+trainer<-trainer[,-x]
+training<-training[,-x]
+testing<-testing[,-x]
+tester<-tester[,-x]
+```
+  
+### Dimension Reduction
+  
+Now let's find out if it makes sense to reduce the dimensionality of the dataset. One approach 
+would be to look for highly correlated variables. I set the threshold at 0.9 so that we get a manageable list of correlated variables, 0.9 is a very high correlation.
+
+```{r}
+M<-abs(cor(training[,c(-2,-5,-6,-59)]))
+diag(M)<-0
+     which(M>.9,arr.ind=T)
+```
+
+All these highly correlated variables makes dimension reduction a no brainer. We'll apply a PCR model to address this, and find out how many components we need by running and analyzing a model on the training data.
+
+
+```{r, cache=TRUE}
+prepro<-preProcess(training[,c(-2,-5,-6,-59)],method="pca",pcaComp=11)
+trainingPC<-predict(prepro,training[,c(-2,-5,-6,-59)])
+colors <- c("blue", "grey", "green","red","black")
+```
+ 
+
+It would be nice to see how the first two principal components are doing in terms of separating the data, below we see five distinct regions developing.
+
+
+```{r,messages=FALSE}
+
+qplot(trainingPC[,1],trainingPC[,2],data=training,colour=classe)
+```
+
+This plot shows some grouping, but we are ignoring our dependent variable on this plot. A 3-d plot can add the classe variable to this visualization, and we can see that the first two principal components do a visually reasonable job of identifying classes 2 and 3.
+
+```{r,messages=FALSE}
+library(scatterplot3d)
+library(ggplot2)
+colors <- colors[as.numeric(training$classe)]
+scatterplot3d(x=training$classe,y=trainingPC[,1],z=trainingPC[,2], main="3D Scatterplot",
+              pch=19,color=colors)
+```
+
+### Model Training
+
+I'm thinking that no one doubts at this point that PCA is a good idea, we see the data being segmented by classe already with just the first two principal components. We also see that there is not nearly enough segmentation in the first two PC's to expect a good prediction.
+
+I suggest a linear discriminant model simply because I like the idea of following PCA with LDA, since they are related ideas. PCA looks for the axis orientation that maximizes the variance, while LDA maximizes the component axes for the best class separation. Combining these approaches is intuitive and efficient. For a brilliant tutorial on combining these approaches see [Sebastian Raschka's blog](http://sebastianraschka.com/Articles/2014_python_lda.html). He is coding in Python, but we should probably be working toward bringing our Python skills up to speed with our R skills by now. 
+
+#### Quick Python Plug
+Python can be more intuitive and less opaque than R, and has some distinct advantages over R when it comes to speed and scaling. In my opinion most Natural Language Processing is better and easier in Python. Python also has terrific plotting packages that in my mind blow R away for simplistic coding and pure aesthetics. Visit [matplotlib.org](http://matplotlib.org/#) and click on any plot for a code template to see what I mean, the documentation is truly impressive. I still prefer R and its vast statistical libraries for most common applications, but I often find myself getting less frustrated using Python to do something new. If a task seems intimidating or coding-intensive, or if I know what I want to do but there's not really a name for it, I lean toward Python now. 
+
+#### Returning to the Model
+If we were to use every variable in our LDA, we would be able to predict our arbitrarily created training and test sets perfectly. However, that's boring, so let's pretend like for some reason we can't do that or don't want to. Here I am employing k-fold cross validation with 3 iterations, although for subtle reasons in our case this won't make any difference for our accuracy. It's here just for future reference (for show).
+
+```{r,messages=FALSE}
+library(caret)
+modelFit<-train(training$classe ~ .,method="lda",data=trainingPC,trControl=trainControl(method="cv",number=5,repeats=3))
+train.lda<-predict(modelFit,trainingPC)
+confusionMatrix(training$classe,predict(modelFit,trainingPC))
+```
+
+Our model is a little heavy on specificity, so we are getting fewer false positives and more false negatives, although balanced accuracy is really the best measure of accuracy unless you have a legitimate reason to prefer either specificity or sensitivity. In that case, it's essential to understand at some level how the two are related.
+
+### Model Testing
+
+Next we apply our model to the arbitrary test set we created in the beginning. Remember that the testing set was modified the same way as the training set from the beginning. (I always feel like I'm at a magic show when I watch tutorials. Sorry if that ruins tutorials for you, but I think it's funny. Drum roll, please...)
+
+```{r,messages=FALSE}
+testingPC<-predict(prepro,testing[,c(-2,-5,-6,-59)])
+testy<-predict(modelFit,testingPC)
+confusionMatrix(testing$classe,predict(modelFit,testingPC))
+```
+
+### TA-DA!!
+
+We got slightly better results on the arbitrary testing set, which is a good indication that we are not overfitting. We could have guessed that overfitting would not be a problem based on the number of dimensions we cut out.
+
+### Predictions
+
+Now let's see what our predictions are for that mystery data. We will turn the answers back into letters for easier comparison.
+
+
+```{r,messages=FALSE, warnings=FALSE}
+testerPred<-predict(prepro,tester[,c(-2,-5,-6,-59)])
+testerPre<-predict(modelFit,testerPred)
+levels(testerPre)<-c("A","B","C","D","E")
+plot(testing$classe,testy)
+testerPre
+``` 
+
+So there we have it. I optimized the number of principal components according to the least number of "A"'s. There are 14 correct out of 20, which is not as high as the prediction, but that's what we expected from the videos, right?
+
+
+
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3p8XTtotD
+
+
+
+
+.
